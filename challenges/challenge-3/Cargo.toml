@@ -8,6 +8,11 @@ edition = "2021"
 ink = { git = "https://github.com/use-ink/ink", branch = "master", default-features = false }
 superdao-traits = { git = "https://github.com/r0gue-io/multichain-superdao", branch = "main", default-features = false }
 minidao-common = { path = "../../common", default-features = false }
+superdao = { git = "https://github.com/r0gue-io/multichain-superdao", branch = "main", default-features = false }
+
+
+[dev-dependencies]
+ink_e2e = "5.0.0"
 
 [lib]
 path = "lib.rs"
