@@ -34,19 +34,28 @@ mod dao {
                 superdao: superdao.into(),
                 voters: StorageVec::new(),
             };
+            instance.superdao.register_member();
             instance
         }
 
         #[ink(message)]
         pub fn get_name(&self) -> String {
             // - Returns the name of the Dao
-            todo!()
+            self.name.clone()
         }
 
         #[ink(message)]
         pub fn register_voter(&mut self) -> Result<(), DaoError> {
             // - Error: Throw error `DaoError::VoterAlreadyRegistered` if the voter is registered
             // - Success: Register a new `voter` to the Dao
+            if self.has_voter(self.env().caller()) {
+                return Err(DaoError::VoterAlreadyRegistered);
+            }
+            let caller = self.env().caller();
+            self.voters.push(&caller);
+
+
+            
             Ok(())
         }
 
@@ -54,21 +63,45 @@ mod dao {
         pub fn deregister_voter(&mut self) -> Result<(), DaoError> {
             // - Error: Throw error `DaoError::VoterNotRegistered` if the voter is not registered
             // - Success: Deregister a new `voter` from the Dao
+            let caller = self.env().caller();
+            if !self.has_voter(caller) {
+                return Err(DaoError::VoterNotRegistered);
+            }
+            for i in 0..self.voters.len() {
+                if let Some(_) = self.voters.get(i) {
+                    self.voters.clear_at(i);
+                }
+            }
+
             Ok(())
         }
 
         #[ink(message)]
         pub fn has_voter(&self, voter: AccountId) -> bool {
-            todo!()
+            // - Success: Return if the voter is registered.
+            for i in 0..self.voters.len() {
+                if let Some(registered_voter) = self.voters.get(i) {
+                    if registered_voter == voter {
+                        return true;
+                    }
+                }
+            }
+            false
+
         }
 
         #[ink(message)]
-        pub fn create_superdao_cross_chain_proposal(
+        pub fn create_superdao_contract_call_proposal(
             &mut self,
             call: ChainCall,
         ) -> Result<(), DaoError> {
             // - Error: Throw error `DaoError::VoterNotRegistered` if the voter is not registered
-            // - Success: Create a SuperDao proposal to execute a cross-chain message.
+            // - Success: Create a SuperDao proposal to call a contract method.
+            if !self.has_voter(self.env().caller()) {
+                return Err(DaoError::VoterNotRegistered);
+            }
+            self.superdao.create_proposal(Call::Chain(call))?;
+
             Ok(())
         }
 
@@ -76,6 +109,15 @@ mod dao {
         pub fn vote_proposal(&mut self, proposal_id: u32, vote: bool) -> Result<(), DaoError> {
             // - Error: Throw error `DaoError::VoterNotRegistered` if the voter is not registered
             // - Success: Vote a SuperDao proposal.
+            if !self.has_voter(self.env().caller()) {
+                return Err(DaoError::VoterNotRegistered);
+            }
+            if vote {
+                self.superdao.vote(proposal_id, Vote::Aye)?;
+            } else {
+                self.superdao.vote(proposal_id, Vote::Nay)?;
+            }
+
             Ok(())
         }
     }
@@ -83,11 +125,31 @@ mod dao {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::dao::Dao;
 
         #[ink::test]
-        fn test_vote_superdao_cross_chain_proposal() {
-            todo!("Challenge 4");
+        fn xcm_encoded_calls_helper() {
+            let location = Location::here();
+
+            let accounts = ink::env::test::default_accounts::<Environment>();
+
+            let value: Balance = 10000000000;
+            let asset: Asset = (Location::parent(), value).into();
+            let beneficiary = AccountId32 {
+                network: None,
+                id: *accounts.alice.as_ref(),
+            };
+
+            let msg: Xcm<()> = Xcm::builder()
+                .withdraw_asset(asset.clone().into())
+                .buy_execution(asset.clone(), Unlimited)
+                .deposit_asset(asset.into(), beneficiary.into())
+                .build();
+
+            let chain_call = ChainCall::new(&location, &msg);
+
+            ink::env::debug_println!("dest: {:?}", hex::encode(chain_call.get_encoded_dest()));
+            ink::env::debug_println!("msg: {:?}", hex::encode(chain_call.get_encoded_msg()));
         }
+        
     }
 }

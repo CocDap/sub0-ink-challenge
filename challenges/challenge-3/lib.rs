@@ -41,6 +41,7 @@ mod dao {
                 superdao: superdao.into(),
                 voters: StorageVec::new(),
             };
+            instance.superdao.register_member();
             instance
         }
 
@@ -59,10 +60,6 @@ mod dao {
             }
             let caller = self.env().caller();
             self.voters.push(&caller);
-
-            self.superdao.register_member()?;
-
-
             
             Ok(())
         }
@@ -80,7 +77,6 @@ mod dao {
                     self.voters.clear_at(i);
                 }
             }
-            self.superdao.deregister_member();
 
             Ok(())
         }

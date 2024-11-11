@@ -9,6 +9,9 @@ ink = { git = "https://github.com/use-ink/ink", branch = "master", default-featu
 superdao-traits = { git = "https://github.com/r0gue-io/multichain-superdao", branch = "main", default-features = false }
 minidao-common = { path = "../../common", default-features = false }
 
+
+[dev-dependencies]
+hex = "0.4.3"
 [lib]
 path = "lib.rs"
 
